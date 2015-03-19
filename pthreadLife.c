@@ -16,7 +16,11 @@
 
 #define MATCH(s) (!strcmp(argv[ac], (s)))
 
+#include "pthread.h"
+pthread_barrier_t barr;
+
 int MeshPlot(int t, int m, int n, char **mesh);
+void *parllelWorkMapUpate(void *args);
 
 double real_rand();
 int seed_rand(long sd);
@@ -33,6 +37,12 @@ static int w_plot = 1;
 
 double getTime();
 extern FILE *gnu;
+
+struct localThreadData{
+       int threadID;
+       long maxiter;
+       int numberOfThreads;
+    };
 
 int main(int argc,char **argv)
 {
@@ -135,38 +145,38 @@ int main(int argc,char **argv)
     double t0 = getTime();
     int t;
 
-    for(t=0;t<maxiter && population[w_plot];t++)
-    {
-        /* Use currWorld to compute the updates and store it in nextWorld */
-      population[w_update] = 0;
-      for(i=1;i<nx-1;i++)
-            for(j=1;j<ny-1;j++) {
-              int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
-                currWorld[i][j+1] + currWorld[i][j-1] + 
-                currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
-                currWorld[i-1][j+1] + currWorld[i+1][j-1];
-              
-              nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
-              population[w_update] += nextWorld[i][j];
-            }
-      
-      
-      /* Pointer Swap : nextWorld <-> currWorld */
-      tmesh = nextWorld;
-      nextWorld = currWorld;
-      currWorld = tmesh;
-      
-      /* Start the new plot */
-      if(!disable_display)
-        MeshPlot(t,nx,ny,currWorld);
-      
-      if (s_step){
-        printf("Finished with step %d\n",t);
-        printf("Press enter to continue.\n");
-        getchar();
-      }
-      
+    int numberOfThreads = 4;
+    pthread_t threads[numberOfThreads];
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr,PTHREAD_CREATE_JOINABLE);
+    struct localThreadData localThreadDataArray[numberOfThreads];
+    pthread_barrier_init(&barr, NULL, (unsigned)numberOfThreads);
+
+    int rc;
+    long tz;
+
+    for(tz=0; tz < numberOfThreads; tz++){
+        localThreadDataArray[tz].threadID = tz;
+        localThreadDataArray[tz].maxiter = maxiter;
+        localThreadDataArray[tz].numberOfThreads = numberOfThreads;
+        rc = pthread_create(&threads[tz], &attr, parllelWorkMapUpate, (void *) &localThreadDataArray[tz]);
+        if (rc){
+          printf("ERROR; return code from pthread_create() #%ld is %d\n", tz, rc);
+          exit(-1);
+        }
     }
+    
+    pthread_attr_destroy(&attr);
+    for(tz=0; tz < numberOfThreads; tz++) {
+        rc = pthread_join(threads[tz], NULL);
+        if (rc) {
+          printf("ERROR; return code from pthread_join() is %d\n", rc);
+          exit(-1);
+        }
+    }
+
+    pthread_barrier_destroy(&barr);
     double t1 = getTime(); 
     printf("Running time for the iterations: %f sec.\n",t1-t0);
     printf("Press enter to end.\n");
@@ -180,4 +190,59 @@ int main(int argc,char **argv)
     free(currWorld);
 
     return(0);
+}
+
+void *parllelWorkMapUpate(void *args){
+    struct localThreadData *localArgs = (struct localThreadData *) args;
+    int threadID = localArgs->threadID;
+    long maxiter = localArgs->maxiter;
+    int numberOfThreads = localArgs->numberOfThreads;
+
+
+
+    int itemsPerTask = (nx - 2)/(numberOfThreads - 1);
+    int start = (threadID - 1) * itemsPerTask + 1;
+    //In case number of maxiter is not evenly divisible by number of threads. 
+    //  Ideally, the programmer controls maxiter input so there is no issue. 
+    //  This trades (very very) slight performance for added correctness security 
+    int end = (threadID - 1) < (numberOfThreads - 2) ? (threadID) * itemsPerTask + 1 : nx - 1;
+    int t, i, j;
+    printf("start: %d, end %d \n", start, end);
+    for(t=0;t<maxiter && population[w_plot];t++)
+    {
+        if(threadID != 0){
+            /* Use currWorld to compute the updates and store it in nextWorld */
+            //population[w_update] = 0;
+            for(i=start;i<end;i++)
+              for(j=start;j<end;j++) {
+                  int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
+                  currWorld[i][j+1] + currWorld[i][j-1] + 
+                  currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
+                  currWorld[i-1][j+1] + currWorld[i+1][j-1];
+              
+                  nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
+                  //population[w_update] += nextWorld[i][j];
+              }
+        }
+        pthread_barrier_wait(&barr);
+
+        if(threadID == 0){
+            /* Pointer Swap : nextWorld <-> currWorld */
+            tmesh = nextWorld;
+            nextWorld = currWorld;
+            currWorld = tmesh;
+        }
+        pthread_barrier_wait(&barr);
+        if(threadID == 0){  
+            /* Start the new plot */
+            //if(!disable_display)
+              MeshPlot(t,nx,ny,currWorld);
+          
+            //if (s_step){
+                printf("Finished with step %d\n",t);
+                printf("Press enter to continue.\n");
+                getchar();
+            //}
+        }
+    }
 }
