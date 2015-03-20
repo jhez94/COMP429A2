@@ -135,54 +135,34 @@ int main(int argc,char **argv)
     /* Perform updates for maxiter iterations */
     double t0 = getTime();
     int t;
-    int iterDone = 0;
 
-    #pragma omp parallel num_threads(2) private(t,i,j) shared(iterDone)
+    #pragma omp parallel num_threads(16) private(i,j) shared(t)
     {
-
-    #pragma omp sections
-    {
-        #pragma omp section
-        #pragma omp parallel num_threads(16)
-        {  
-            for(t=0;t<maxiter && population[w_plot];t++){
-                /* Use currWorld to compute the updates and store it in nextWorld */
-                //population[w_update] = 0;
-
-                #pragma parallel for
-                for(i=1;i<nx-1;i++)
-                    for(j=1;j<ny-1;j++) {
-                        int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
-                        currWorld[i][j+1] + currWorld[i][j-1] + 
-                        currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
-                        currWorld[i-1][j+1] + currWorld[i+1][j-1];
-                  
-                        nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
-                        //population[w_update] += nextWorld[i][j];
-                    }
-              
-                #pragma omp barrier
-
-                #pragma omp single
-                {
-                    while(iterDone==1){}; //lock
-                    #pragma omp critical
-                    {
-                    iterDone = 1;
-                    }
-
-                    /* Pointer Swap : nextWorld <-> currWorld */
-                    tmesh = nextWorld;
-                    nextWorld = currWorld;
-                    currWorld = tmesh;
-                }
-            }
-        }
-
-        #pragma omp section
         for(t=0;t<maxiter && population[w_plot];t++){
-            while(iterDone==1){
-                /* Start the new plot */
+            /* Use currWorld to compute the updates and store it in nextWorld */
+            //population[w_update] = 0;
+
+            #pragma parallel for
+            for(i=1;i<nx-1;i++)
+                for(j=1;j<ny-1;j++) {
+                    int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
+                    currWorld[i][j+1] + currWorld[i][j-1] + 
+                    currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
+                    currWorld[i-1][j+1] + currWorld[i+1][j-1];
+              
+                    nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
+                    //population[w_update] += nextWorld[i][j];
+                }
+          
+            #pragma omp barrier
+
+            #pragma omp single
+            {
+                /* Pointer Swap : nextWorld <-> currWorld */
+                tmesh = nextWorld;
+                nextWorld = currWorld;
+                currWorld = tmesh;
+
                 if(!disable_display)
                     MeshPlot(t,nx,ny,currWorld);
 
@@ -191,14 +171,8 @@ int main(int argc,char **argv)
                     printf("Press enter to continue.\n");
                     getchar();
                 }
-                #pragma omp critical
-                {
-                iterDone = 0;
-                }
             }
         }
-    }//End for parallel sections
-
     }//End for parallel region
 
     double t1 = getTime(); 
