@@ -20,6 +20,8 @@ int MeshPlot(int t, int m, int n, char **mesh);
 
 double real_rand();
 int seed_rand(long sd);
+void outputResult(char**, char*, int, int);
+void resultVerifier(char**, char*, int, int);
 
 static char **currWorld=NULL, **nextWorld=NULL, **tmesh=NULL;
 static int maxiter = 200; /* number of iteration timesteps */
@@ -141,13 +143,13 @@ int main(int argc,char **argv)
       population[w_update] = 0;
       for(i=1;i<nx-1;i++)
             for(j=1;j<ny-1;j++) {
-              int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
-                currWorld[i][j+1] + currWorld[i][j-1] + 
-                currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
-                currWorld[i-1][j+1] + currWorld[i+1][j-1];
-              
-              nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
-              population[w_update] += nextWorld[i][j];
+	      int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
+		currWorld[i][j+1] + currWorld[i][j-1] + 
+		currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
+		currWorld[i-1][j+1] + currWorld[i+1][j-1];
+	      
+	      nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
+	      population[w_update] += nextWorld[i][j];
             }
       
       
@@ -158,12 +160,12 @@ int main(int argc,char **argv)
       
       /* Start the new plot */
       if(!disable_display)
-        MeshPlot(t,nx,ny,currWorld);
+	MeshPlot(t,nx,ny,currWorld);
       
       if (s_step){
-        printf("Finished with step %d\n",t);
-        printf("Press enter to continue.\n");
-        getchar();
+	printf("Finished with step %d\n",t);
+	printf("Press enter to continue.\n");
+	getchar();
       }
       
     }
@@ -174,7 +176,12 @@ int main(int argc,char **argv)
     
     if(gnu != NULL)
       pclose(gnu);
-        
+    
+    //outputGoldenValue
+    char outputFileName[50];
+    sprintf(outputFileName,"GDValue_i%d_s%d_x%d_y%d.txt", maxiter, seedVal, nx, ny);
+    outputResult(currWorld,outputFileName,nx,ny);
+
     /* Free resources */
     free(nextWorld);
     free(currWorld);
