@@ -1,6 +1,6 @@
 include ./arch
 
-OBJ	= life.o real_rand.o plot.o timer.o
+OBJ	= life.o real_rand.o plot.o timer.o checkResult.o
 
 LDLIBS = -lpthread 
 

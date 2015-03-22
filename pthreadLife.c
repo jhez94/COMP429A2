@@ -21,6 +21,8 @@ pthread_barrier_t barr;
 
 int MeshPlot(int t, int m, int n, char **mesh);
 void *parllelWorkMapUpate(void *args);
+void outputResult(char**, char*, int, int);
+void resultVerifier(char**, char*, int, int);
 
 double real_rand();
 int seed_rand(long sd);
@@ -184,7 +186,12 @@ int main(int argc,char **argv)
     
     if(gnu != NULL)
       pclose(gnu);
-        
+
+    //ChechResult with golden value
+    char inputFileName[50];
+    sprintf(inputFileName,"GDValue_i%d_s%d_x%d_y%d.txt", maxiter, seedVal, nx, ny);
+    resultVerifier(currWorld,inputFileName,nx,ny);
+
     /* Free resources */
     free(nextWorld);
     free(currWorld);
