@@ -44,6 +44,8 @@ struct localThreadData{
        int threadID;
        long maxiter;
        int numberOfThreads;
+       int disable_display;
+       int s_step;
     };
 
 int main(int argc,char **argv)
@@ -162,6 +164,8 @@ int main(int argc,char **argv)
         localThreadDataArray[tz].threadID = tz;
         localThreadDataArray[tz].maxiter = maxiter;
         localThreadDataArray[tz].numberOfThreads = numberOfThreads;
+        localThreadDataArray[tz].disable_display = disable_display;
+        localThreadDataArray[tz].s_step = s_step;
         rc = pthread_create(&threads[tz], &attr, parllelWorkMapUpate, (void *) &localThreadDataArray[tz]);
         if (rc){
           printf("ERROR; return code from pthread_create() #%ld is %d\n", tz, rc);
@@ -204,9 +208,10 @@ void *parllelWorkMapUpate(void *args){
     int threadID = localArgs->threadID;
     long maxiter = localArgs->maxiter;
     int numberOfThreads = localArgs->numberOfThreads;
+    int disable_display = localArgs->disable_display;
+    int s_step = localArgs->s_step;
 
-
-
+    
     int itemsPerTask = (nx - 2)/(numberOfThreads - 1);
     int start = (threadID - 1) * itemsPerTask + 1;
     //In case number of maxiter is not evenly divisible by number of threads. 
@@ -242,14 +247,14 @@ void *parllelWorkMapUpate(void *args){
         pthread_barrier_wait(&barr);
         if(threadID == 0){  
             /* Start the new plot */
-            //if(!disable_display)
+            if(!disable_display)
               MeshPlot(t,nx,ny,currWorld);
           
-            //if (s_step){
+            if (s_step){
                 printf("Finished with step %d\n",t);
                 printf("Press enter to continue.\n");
                 getchar();
-            //}
+            }
         }
     }
 }
