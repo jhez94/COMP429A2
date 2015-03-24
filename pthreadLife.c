@@ -213,20 +213,20 @@ void *parllelWorkMapUpate(void *args){
 
     
     int itemsPerTask = (nx - 2)/(numberOfThreads - 1);
-    int start = (threadID - 1) * itemsPerTask + 1;
+    int startRow = (threadID - 1) * itemsPerTask + 1;
     //In case number of maxiter is not evenly divisible by number of threads. 
     //  Ideally, the programmer controls maxiter input so there is no issue. 
     //  This trades (very very) slight performance for added correctness security 
-    int end = (threadID - 1) < (numberOfThreads - 2) ? (threadID) * itemsPerTask + 1 : nx - 1;
+    int endRow = (threadID - 1) < (numberOfThreads - 2) ? (threadID) * itemsPerTask + 1 : nx - 1;
     int t, i, j;
-    printf("start: %d, end %d \n", start, end);
+    printf("startRow: %d, endRow %d \n", startRow, endRow);
     for(t=0;t<maxiter && population[w_plot];t++)
     {
         if(threadID != 0){
             /* Use currWorld to compute the updates and store it in nextWorld */
             //population[w_update] = 0;
-            for(i=start;i<end;i++)
-              for(j=start;j<end;j++) {
+            for(i=startRow;i<endRow;i++)
+              for(j=1;j<nx-1;j++) {
                   int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
                   currWorld[i][j+1] + currWorld[i][j-1] + 
                   currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
@@ -253,7 +253,7 @@ void *parllelWorkMapUpate(void *args){
             if (s_step){
                 printf("Finished with step %d\n",t);
                 printf("Press enter to continue.\n");
-                getchar();
+                getchar();  
             }
         }
     }
