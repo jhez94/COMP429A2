@@ -155,7 +155,7 @@ int main(int argc,char **argv)
             }
         }
 
-        #pragma barrier
+        #pragma omp barrier
         #pragma omp single nowait
         {
             /* Pointer Swap : nextWorld <-> currWorld */
