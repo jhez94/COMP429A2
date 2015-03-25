@@ -120,6 +120,8 @@ int main(int argc,char **argv)
     else if (game == 2){ //  Glider (spaceship)
         printf("Glider (spaceship)\n");
         // Your code codes here
+	currWorld[2][1] = currWorld[3][2] = currWorld[1][3] = currWorld[2][3] = currWorld[3][3] = 1;
+	population[w_plot] = 5;
     }
     else{
         printf("Unknown game %d\n",game);
@@ -132,7 +134,12 @@ int main(int argc,char **argv)
     /* Plot the initial data */
     if(!disable_display)
       MeshPlot(0,nx,ny,currWorld);
-    
+    if (s_step){
+	printf("Finished with initial data\n");
+	printf("Press enter to continue.\n");
+	getchar();
+      }
+
     /* Perform updates for maxiter iterations */
     double t0 = getTime();
     int t;
