@@ -149,7 +149,7 @@ int main(int argc,char **argv)
     double t0 = getTime();
     int t;
 
-    int numberOfThreads = 4;
+    int numberOfThreads = 1;
     pthread_t threads[numberOfThreads];
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -212,7 +212,7 @@ void *parllelWorkMapUpate(void *args){
     int s_step = localArgs->s_step;
 
     
-    int itemsPerTask = (nx - 2)/(numberOfThreads - 1);
+    int itemsPerTask = (numberOfThreads == 1) ? nx - 2 : (nx - 2)/(numberOfThreads - 1);
     int startRow = (threadID - 1) * itemsPerTask + 1;
     //In case number of maxiter is not evenly divisible by number of threads. 
     //  Ideally, the programmer controls maxiter input so there is no issue. 
@@ -222,7 +222,7 @@ void *parllelWorkMapUpate(void *args){
     printf("startRow: %d, endRow %d \n", startRow, endRow);
     for(t=0;t<maxiter && population[w_plot];t++)
     {
-        if(threadID != 0){
+        if(threadID != 0 || numberOfThreads == 1){
             /* Use currWorld to compute the updates and store it in nextWorld */
             //population[w_update] = 0;
             for(i=startRow;i<endRow;i++)
