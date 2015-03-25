@@ -121,6 +121,8 @@ int main(int argc,char **argv)
     else if (game == 2){ //  Glider (spaceship)
         printf("Glider (spaceship)\n");
         // Your code codes here
+        currWorld[2][1] = currWorld[3][2] = currWorld[1][3] = currWorld[2][3] = currWorld[3][3] = 1;
+		population[w_plot] = 5;
     }
     else{
         printf("Unknown game %d\n",game);
@@ -138,46 +140,39 @@ int main(int argc,char **argv)
     double t0 = getTime();
     int t;
 
-    //#pragma omp parallel num_threads(16) private(i,j) shared(t)
-    //{
-        for(t=0;t<maxiter && population[w_plot];t++){
-            /* Use currWorld to compute the updates and store it in nextWorld */
-            //population[w_update] = 0;
+    for(t=0;t<maxiter && population[w_plot];t++){
+        /* Use currWorld to compute the updates and store it in nextWorld */
 
-            //#pragma parallel for
-            #pragma omp parallel for num_threads(16) private(i,j)
-            for(i=1;i<nx-1;i++){
-                for(j=1;j<ny-1;j++) {
-                    int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
-                    currWorld[i][j+1] + currWorld[i][j-1] + 
-                    currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
-                    currWorld[i-1][j+1] + currWorld[i+1][j-1];
-              
-                    nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
-                    //population[w_update] += nextWorld[i][j];
-                }
-            }
+        #pragma omp parallel for num_threads(16) private(i,j) //collapse(20)
+        for(i=1;i<nx-1;i++){
+            for(j=1;j<ny-1;j++) {
+                int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
+                currWorld[i][j+1] + currWorld[i][j-1] + 
+                currWorld[i+1][j+1] + currWorld[i-1][j-1] + 
+                currWorld[i-1][j+1] + currWorld[i+1][j-1];
           
-            #pragma omp barrier
-
-            #pragma omp single
-            {
-                /* Pointer Swap : nextWorld <-> currWorld */
-                tmesh = nextWorld;
-                nextWorld = currWorld;
-                currWorld = tmesh;
-
-                if(!disable_display)
-                    MeshPlot(t,nx,ny,currWorld);
-
-                if (s_step){
-                    printf("Finished with step %d\n",t);
-                    printf("Press enter to continue.\n");
-                    getchar();
-                }
+                nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
             }
         }
-    //}//End for parallel region
+
+        #pragma barrier
+        #pragma omp single nowait
+        {
+            /* Pointer Swap : nextWorld <-> currWorld */
+            tmesh = nextWorld;
+            nextWorld = currWorld;
+            currWorld = tmesh;
+
+            if(!disable_display)
+                MeshPlot(t,nx,ny,currWorld);
+
+            if (s_step){
+                printf("Finished with step %d\n",t);
+                printf("Press enter to continue.\n");
+                getchar();
+            }
+        }
+    }
 
     double t1 = getTime(); 
     printf("Running time for the iterations: %f sec.\n",t1-t0);
@@ -186,11 +181,6 @@ int main(int argc,char **argv)
     
     if(gnu != NULL)
       pclose(gnu);
-    
-    //ChechResult with golden value
-    char inputFileName[50];
-    sprintf(inputFileName,"GDValue_i%d_s%d_x%d_y%d.txt", maxiter, seedVal, nx, ny);
-    resultVerifier(currWorld,inputFileName,nx,ny);
 
     /* Free resources */
     free(nextWorld);

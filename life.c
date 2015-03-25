@@ -6,6 +6,7 @@
  *     Modified by Scott Baden [10/8/06]
  *     Modified by Pietro Cicotti [10/8/08]
  *     Modified by Didem Unat [03/06/15]
+ *     Modified by Jeffrey He / James Lin [3/25/15]
  *************************************************************/
 
 #include <stdlib.h>
@@ -183,11 +184,6 @@ int main(int argc,char **argv)
     
     if(gnu != NULL)
       pclose(gnu);
-    
-    //outputGoldenValue
-    char outputFileName[50];
-    sprintf(outputFileName,"GDValue_i%d_s%d_x%d_y%d.txt", maxiter, seedVal, nx, ny);
-    outputResult(currWorld,outputFileName,nx,ny);
 
     /* Free resources */
     free(nextWorld);

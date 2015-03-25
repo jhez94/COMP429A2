@@ -6,6 +6,8 @@
  *     Modified by Scott Baden [10/8/06]
  *     Modified by Pietro Cicotti [10/8/08]
  *     Modified by Didem Unat [03/06/15]
+       Modified by Jeffrey He / James Lin [3/25/15]
+            Added parallization functionality via pthreads 
  *************************************************************/
 
 #include <stdlib.h>
@@ -132,6 +134,8 @@ int main(int argc,char **argv)
     else if (game == 2){ //  Glider (spaceship)
         printf("Glider (spaceship)\n");
         // Your code codes here
+        currWorld[2][1] = currWorld[3][2] = currWorld[1][3] = currWorld[2][3] = currWorld[3][3] = 1;
+        population[w_plot] = 5;
     }
     else{
         printf("Unknown game %d\n",game);
@@ -149,7 +153,7 @@ int main(int argc,char **argv)
     double t0 = getTime();
     int t;
 
-    int numberOfThreads = 1;
+    int numberOfThreads = 4;
     pthread_t threads[numberOfThreads];
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -160,6 +164,7 @@ int main(int argc,char **argv)
     int rc;
     long tz;
 
+    /*Saving parameters to be passed to threads, and creation of the threads */
     for(tz=0; tz < numberOfThreads; tz++){
         localThreadDataArray[tz].threadID = tz;
         localThreadDataArray[tz].maxiter = maxiter;
@@ -191,11 +196,6 @@ int main(int argc,char **argv)
     if(gnu != NULL)
       pclose(gnu);
 
-    //ChechResult with golden value
-    char inputFileName[50];
-    sprintf(inputFileName,"GDValue_i%d_s%d_x%d_y%d.txt", maxiter, seedVal, nx, ny);
-    resultVerifier(currWorld,inputFileName,nx,ny);
-
     /* Free resources */
     free(nextWorld);
     free(currWorld);
@@ -211,20 +211,19 @@ void *parllelWorkMapUpate(void *args){
     int disable_display = localArgs->disable_display;
     int s_step = localArgs->s_step;
 
-    
+    //In the case the numberOfThreads is 1, make sure no divide by zero error
     int itemsPerTask = (numberOfThreads == 1) ? nx - 2 : (nx - 2)/(numberOfThreads - 1);
     int startRow = (threadID - 1) * itemsPerTask + 1;
-    //In case number of maxiter is not evenly divisible by number of threads. 
-    //  Ideally, the programmer controls maxiter input so there is no issue. 
-    //  This trades (very very) slight performance for added correctness security 
+    /*All threads gets even amount of work, except last which gets slightly few more
+      in the case that work is not evenly divisible */
     int endRow = (threadID - 1) < (numberOfThreads - 2) ? (threadID) * itemsPerTask + 1 : nx - 1;
     int t, i, j;
-    printf("startRow: %d, endRow %d \n", startRow, endRow);
+    //printf("startRow: %d, endRow %d \n", startRow, endRow);
     for(t=0;t<maxiter && population[w_plot];t++)
     {
+        /*Need second part of conditional for edge case of only 1 thread */
         if(threadID != 0 || numberOfThreads == 1){
             /* Use currWorld to compute the updates and store it in nextWorld */
-            //population[w_update] = 0;
             for(i=startRow;i<endRow;i++)
               for(j=1;j<nx-1;j++) {
                   int nn = currWorld[i+1][j] + currWorld[i-1][j] + 
@@ -233,7 +232,6 @@ void *parllelWorkMapUpate(void *args){
                   currWorld[i-1][j+1] + currWorld[i+1][j-1];
               
                   nextWorld[i][j] = currWorld[i][j] ? (nn == 2 || nn == 3) : (nn == 3);
-                  //population[w_update] += nextWorld[i][j];
               }
         }
         pthread_barrier_wait(&barr);
