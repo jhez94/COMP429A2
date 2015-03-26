@@ -143,7 +143,7 @@ int main(int argc,char **argv)
     for(t=0;t<maxiter && population[w_plot];t++){
         /* Use currWorld to compute the updates and store it in nextWorld */
 
-        #pragma omp parallel for num_threads(16) private(i,j) //collapse(20)
+        #pragma omp parallel for num_threads(4) private(i,j)
         for(i=1;i<nx-1;i++){
             for(j=1;j<ny-1;j++) {
                 int nn = currWorld[i+1][j] + currWorld[i-1][j] + 

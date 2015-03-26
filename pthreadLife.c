@@ -242,7 +242,7 @@ void *parllelWorkMapUpate(void *args){
             nextWorld = currWorld;
             currWorld = tmesh;
         }
-        pthread_barrier_wait(&barr);
+
         if(threadID == 0){  
             /* Start the new plot */
             if(!disable_display)
